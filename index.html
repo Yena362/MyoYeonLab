@@ -47,11 +47,11 @@ button.primary{background:var(--purple);color:#fff;border-color:transparent;box-
 button.soft{background:var(--lav);border-color:transparent;color:var(--deep)}
 button.ghost{background:none;border:0;padding:6px 0;color:var(--muted);font-weight:500;font-size:14px}
 button:disabled{opacity:.45;cursor:default}
-input,select{font:inherit;font-size:16px;color:var(--fg);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0}
+input,select{-webkit-appearance:none;appearance:none;display:block;max-width:100%;font:inherit;font-size:16px;color:var(--fg);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0}
 input:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2.5px solid var(--purple);outline-offset:2px}
 input:disabled{opacity:.45}
 .chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
-.chk input{width:18px;height:18px;accent-color:var(--purple)}
+.chk input{width:18px;height:18px;accent-color:var(--purple);-webkit-appearance:checkbox;appearance:auto;display:inline-block;flex:none}
 .logo{display:flex;align-items:center;gap:8px}
 .logo .mk{width:34px;height:34px;border-radius:10px;background-size:cover;flex:none;box-shadow:0 2px 8px rgba(140,114,181,.25)}
 .logo b{font-family:var(--display);font-weight:400;font-size:28px;color:var(--brown);letter-spacing:.04em}
@@ -780,7 +780,7 @@ function drawStep(){const st=STEPS[SI],P=PEOPLE[st.pi];
   if(st.k==='basic'){h=`<h2>이름과 성별</h2><label class="f">이름<input id="w-name" maxlength="12" autocomplete="off" value="${esc(P.name)}" placeholder="예: 최예나"></label>
     <div class="two"><button type="button" class="opt" data-gen="여" aria-pressed="${P.gen==='여'}"><span class="rab" style="background-image:url(${IMG.faceG})"></span>여성</button>
     <button type="button" class="opt" data-gen="남" aria-pressed="${P.gen==='남'}"><span class="rab" style="background-image:url(${IMG.faceB})"></span>남성</button></div>`}
-  if(st.k==='birth'){h=`<h2>태어난 날과 시간</h2><label class="f">생년월일 (양력)<input id="w-date" type="date" min="1920-01-01" max="2030-12-31" value="${P.date}"></label>
+  if(st.k==='birth'){h=`<h2>태어난 날과 시간</h2><label class="f">생년월일 (양력)<input id="w-date" type="text" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="예: 2004.01.25" value="${P.date.replace(/-/g,'.')}"></label><span class="hint">숫자 8자리만 입력해도 돼요. 2004년 1월 25일은 20040125.</span>
     <label class="f">태어난 시각 (24시간제)<input id="w-time" type="text" inputmode="numeric" autocomplete="off" maxlength="5" placeholder="예: 17:14" value="${P.time}" ${P.unk?'disabled':''}></label><span class="hint">숫자만 입력해도 돼요. 오후 5시 14분은 1714, 밤 11시 10분은 2310.</span>
     <label class="chk"><input type="checkbox" id="w-unk" ${P.unk?'checked':''}>태어난 시간 모름</label>`}
   if(st.k==='mbti'){const AX=[['E','외향','I','내향'],['S','감각','N','직관'],['T','사고','F','감정'],['J','판단','P','인식']];
@@ -795,6 +795,7 @@ function drawStep(){const st=STEPS[SI],P=PEOPLE[st.pi];
   F.querySelectorAll('[data-ax]').forEach(b=>b.onclick=()=>{P.mbtiUnk=false;const i=+b.dataset.ax;P.mbtiAx[i]=b.dataset.v;F.querySelectorAll(`[data-ax="${i}"]`).forEach(x=>x.setAttribute('aria-pressed',x===b));$('w-type').textContent=P.mbtiAx.map(x=>x||'·').join('')});
   F.querySelectorAll('[data-bl]').forEach(b=>b.onclick=()=>{P.blood=b.dataset.bl;P.bloodSet=true;F.querySelectorAll('[data-bl]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
   const u=$('w-unk');if(u)u.onchange=()=>{$('w-time').disabled=u.checked};
+  const wd=$('w-date');if(wd)wd.addEventListener('input',()=>{const g=wd.value.replace(/\D/g,'').slice(0,8);wd.value=g.length>6?`${g.slice(0,4)}.${g.slice(4,6)}.${g.slice(6)}`:g.length>4?`${g.slice(0,4)}.${g.slice(4)}`:g});
   const wt=$('w-time');if(wt)wt.addEventListener('input',()=>{const dgt=wt.value.replace(/\D/g,'').slice(0,4);wt.value=dgt.length>2?dgt.slice(0,2)+':'+dgt.slice(2):dgt});
   const sk=$('w-skip');if(sk)sk.onclick=()=>{if(st.k==='mbti'){P.mbtiUnk=true;P.mbti='';P.mbtiAx=['','','','']}else{P.blood='';P.bloodSet=true}
     if(SI<STEPS.length-1){SI++;drawStep();window.scrollTo(0,0)}else finish()};
@@ -803,8 +804,9 @@ function drawStep(){const st=STEPS[SI],P=PEOPLE[st.pi];
 }
 function collect(validate){const st=STEPS[SI],P=PEOPLE[st.pi];let e='';
   if(st.k==='basic'){P.name=$('w-name').value.trim();if(validate&&!P.name)e='이름을 입력해 주세요. 별명도 괜찮아요.'}
-  if(st.k==='birth'){P.date=$('w-date').value;P.unk=$('w-unk').checked;P.time=P.unk?'':$('w-time').value;
-    if(validate){if(!P.date)e='생년월일을 입력해 주세요.';else{const y=+P.date.slice(0,4);if(y<1920||y>2030)e='1920년부터 2030년 사이로 입력해 주세요.'}
+  if(st.k==='birth'){const dm=$('w-date').value.trim().match(/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})$/);let dateBad=false;
+    if(dm){const Y=+dm[1],Mo=+dm[2],D=+dm[3];const t=new Date(Date.UTC(Y,Mo-1,D));if(t.getUTCMonth()!==Mo-1||t.getUTCDate()!==D)dateBad=true;else P.date=`${Y}-${pad(Mo)}-${pad(D)}`}else{P.date=$('w-date').value.trim()?P.date:'';dateBad=!!$('w-date').value.trim()}P.unk=$('w-unk').checked;P.time=P.unk?'':$('w-time').value;
+    if(validate){if(dateBad)e='날짜를 다시 확인해 주세요. 예: 2004.01.25';else if(!P.date)e='생년월일을 입력해 주세요.';else{const y=+P.date.slice(0,4);if(y<1920||y>2030)e='1920년부터 2030년 사이로 입력해 주세요.'}
       if(!e&&!P.unk&&!P.time)e="태어난 시각을 넣거나 '태어난 시간 모름'을 체크해 주세요.";
       if(!e&&!P.unk){const mm=P.time.match(/^(\d{1,2}):?(\d{2})$/);if(!mm||+mm[1]>23||+mm[2]>59)e='시각은 00:00부터 23:59 사이로 입력해 주세요. 예: 17:14';else P.time=pad(+mm[1])+':'+mm[2]}}}
   if(st.k==='mbti'){if(P.mbtiAx.every(x=>x))P.mbtiUnk=false;if(validate&&!P.mbtiUnk&&P.mbtiAx.some(x=>!x))e="네 줄 모두 골라 주세요. 모르면 아래 건너뛰기를 눌러 주세요.";
